@@ -1,0 +1,21 @@
+{
+  "dashboard": {
+    "uid": "ddos-simulator",
+    "title": "DDoS Simulator",
+    "panels": [
+      {
+        "type": "timeseries",
+        "title": "Request Rate",
+        "targets":[{ "expr":"current_request_rate" }]
+      },
+      {
+        "type": "barchart",
+        "title": "Classification Counts",
+        "targets":[{ "expr":"sum(requests_classified) by (result)" }]
+      }
+    ],
+    "schemaVersion": 36,
+    "version": 1
+  },
+  "overwrite": true
+}

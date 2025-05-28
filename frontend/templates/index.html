@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DDoS Simulator Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>DDoS Simulator</h1>
+    <div class="buttons">
+      <button id="normalBtn">Normal Traffic</button>
+      <button id="ddosBtn">DDoS Traffic</button>
+    </div>
+    <div class="charts">
+      <canvas id="trafficChart"></canvas>
+      <canvas id="classChart"></canvas>
+    </div>
+    <div id="log"></div>
+  </div>
+  <script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>

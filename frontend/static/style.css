@@ -1,0 +1,52 @@
+/* frontend/static/style.css */
+
+body {
+  background: #121212;
+  color: #eee;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+.container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 20px;
+  background: #1e1e1e;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
+h1 {
+  text-align: center;
+}
+.buttons {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.buttons button {
+  background: #007bff;
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  margin: 0 5px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.charts {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+canvas {
+  background: #2a2a2a;
+  border-radius: 5px;
+  flex: 1;
+}
+#log {
+  margin-top: 20px;
+  height: 100px;
+  overflow-y: auto;
+  background: #222;
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 0.9em;
+}

@@ -1,0 +1,5 @@
+venv/
+backend/database.db
+__pycache__/
+*.pyc
+Model training/IoT_Intrusion.csv
