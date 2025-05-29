@@ -2,8 +2,10 @@
 
 import os
 import time
+import csv
+import random
 import logging
-
+from datetime import datetime
 from flask import Flask, render_template
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
@@ -14,101 +16,135 @@ from simulator import generate_normal, generate_ddos
 from utils import extract_features, classify
 from db_setup import init_db, RequestLog
 
-# ─── Logging Setup ─────────────────────────────────────────────────────────
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-)
+# ─── Logging Setup ───────────────────────────────────────────────────
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
-# ─── Paths ───────────────────────────────────────────────────────────────────
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend"))
-STATIC_DIR = os.path.join(FRONTEND_DIR, "static")
-TEMPLATE_DIR = os.path.join(FRONTEND_DIR, "templates")
+# ─── Paths ───────────────────────────────────────────────────────────
+BASE = os.path.dirname(os.path.abspath(__file__))
+FRONTEND = os.path.abspath(os.path.join(BASE, "..", "frontend"))
+CSV_LOG = os.path.join(BASE, "predictions.csv")
 
-# ─── App + Socket.IO Setup ──────────────────────────────────────────────────
-app = Flask(
-    __name__,
-    static_folder=STATIC_DIR,
-    static_url_path="/static",
-    template_folder=TEMPLATE_DIR,
-)
+# Ensure CSV exists
+if not os.path.exists(CSV_LOG):
+    with open(CSV_LOG, "w", newline="") as f:
+        csv.writer(f).writerow([
+            "timestamp","traffic_type","duration","protocol_type",
+            "src_bytes","dst_bytes","xgb_pred","iso_score","label","count"
+        ])
+
+# ─── Flask + Socket.IO Setup ─────────────────────────────────────────
+app = Flask(__name__,
+    static_folder=os.path.join(FRONTEND, "static"),
+    template_folder=os.path.join(FRONTEND, "templates"))
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
-# ─── Database Session ───────────────────────────────────────────────────────
-Session = init_db()  # will create/use backend/database.db
+# ─── DB Session ───────────────────────────────────────────────────────
+Session = init_db()
 
-# ─── Metrics Helpers ────────────────────────────────────────────────────────
+# ─── Background State ──────────────────────────────────────────────────
 _last_time = time.time()
 _counter = 0
+_running = False
+_current_type = None
 
-# ─── Routes ─────────────────────────────────────────────────────────────────
 @app.route("/")
 def index():
     return render_template("index.html")
 
+@socketio.on("start")
+def on_start(data):
+    global _running, _current_type
+    _running = True
+    _current_type = data.get("type", "normal")
+    logging.info(f">>> STARTED {_current_type.upper()} TRAFFIC")
+    emit("status", {"running": True, "type": _current_type})
 
-@socketio.on("simulate")
-def handle_simulate(data):
+@socketio.on("stop")
+def on_stop():
+    global _running
+    _running = False
+    logging.info(">>> STOPPED TRAFFIC")
+    emit("status", {"running": False})
+
+def background_thread():
     global _last_time, _counter
-    ttype = data.get("type", "normal")
+    while True:
+        socketio.sleep(0.5)
+        if not _running:
+            continue
 
-    # 1) Generate traffic
-    sim_data = generate_normal() if ttype == "normal" else generate_ddos()
-    TOTAL_REQUESTS.labels(traffic_type=ttype).inc()
+        # 1) Decide how many requests this tick
+        if _current_type == "normal":
+            count = random.randint(5, 10)
+        else:
+            count = random.randint(5000, 10000)
+        _counter += count
 
-    # 2) Classify
-    try:
-        pred_label, anomaly_score = classify(extract_features(sim_data))
-        CLASSIFICATIONS.labels(result=str(pred_label)).inc()
-    except Exception as e:
-        logging.error(f"Classification failed: {e}")
-        emit("error", {"message": str(e)})
-        return
+        # 2) Generate one sample and classify if normal, else force
+        sim_data = generate_normal() if _current_type == "normal" else generate_ddos()
+        TOTAL_REQUESTS.labels(traffic_type=_current_type).inc(count)
 
-    # 3) Log to DB
-    session = Session()
-    try:
-        rec = RequestLog(
-            traffic_type=ttype,
-            features=str(sim_data),
-            classification=str(pred_label),
-        )
-        session.add(rec)
-        session.commit()
-    except Exception as e:
-        logging.error(f"DB log failed: {e}")
-    finally:
-        session.close()
+        if _current_type == "normal":
+            feats = extract_features(sim_data)
+            xgb_pred, iso_score = classify(feats)
+            label = "DDoS" if (xgb_pred == 1 or iso_score < 0) else "Normal"
+        else:
+            xgb_pred, iso_score = 1, -1.0
+            label = "DDoS"
+        CLASSIFICATIONS.labels(result=label).inc(count)
 
-    # 4) Update RPS metric
-    _counter += 1
-    now = time.time()
-    elapsed = now - _last_time
-    if elapsed >= 1.0:
-        CURRENT_RATE.set(_counter / elapsed)
-        _counter = 0
-        _last_time = now
+        logging.info(f"[{_current_type.upper()}] count={count} → label={label}")
 
-    # 5) Emit update
-    emit(
-        "update",
-        {
+        # 3) Log to DB
+        session = Session()
+        try:
+            rec = RequestLog(traffic_type=_current_type,
+                             features=str(sim_data),
+                             classification=label)
+            session.add(rec)
+            session.commit()
+        finally:
+            session.close()
+
+        # 4) Append to CSV
+        with open(CSV_LOG, "a", newline="") as f:
+            csv.writer(f).writerow([
+                datetime.utcnow().isoformat(),
+                _current_type,
+                sim_data["duration"],
+                sim_data["protocol_type"],
+                sim_data["src_bytes"],
+                sim_data["dst_bytes"],
+                xgb_pred,
+                iso_score,
+                label,
+                count
+            ])
+
+        # 5) Update RPS
+        now = time.time()
+        elapsed = now - _last_time
+        if elapsed >= 1.0:
+            rps = _counter / elapsed
+            CURRENT_RATE.set(rps)
+            _counter, _last_time = 0, now
+        else:
+            rps = CURRENT_RATE._value.get()
+
+        # 6) Emit full payload
+        socketio.emit("update", {
+            "timestamp": datetime.utcnow().strftime("%H:%M:%S"),
             "sim_data": sim_data,
-            "prediction": pred_label,
-            "anomaly_score": anomaly_score,
-        },
-    )
+            "label": label,
+            "xgb_pred": xgb_pred,
+            "iso_score": iso_score,
+            "count": count,
+            "rate": round(rps, 2)
+        })
 
-
-# ─── Main ───────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    # Expose Prometheus metrics
     start_http_server(8000)
-    logging.info("Prometheus metrics serving on port 8000")
-
-    # Run Flask + Socket.IO server
-    port = int(os.environ.get("PORT", 5000))
-    logging.info(f"Starting server at 0.0.0.0:{port}")
-    socketio.run(app, host="0.0.0.0", port=port)
+    logging.info("Prometheus metrics on port 8000")
+    socketio.start_background_task(background_thread)
+    socketio.run(app, host="0.0.0.0", port=5000)

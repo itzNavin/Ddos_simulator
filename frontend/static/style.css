@@ -1,52 +1,72 @@
-/* frontend/static/style.css */
+/* style.css */
 
 body {
-  background: #121212;
-  color: #eee;
-  font-family: Arial, sans-serif;
   margin: 0;
-  padding: 0;
+  font-family: Arial, sans-serif;
+  background: #121212;
+  color: #e0e0e0;
 }
-.container {
-  max-width: 900px;
-  margin: 40px auto;
-  padding: 20px;
-  background: #1e1e1e;
-  border-radius: 10px;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-}
-h1 {
+
+.header {
   text-align: center;
+  padding: 1rem;
+  background: #1f1f1f;
 }
-.buttons {
-  text-align: center;
-  margin-bottom: 20px;
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1rem 0;
 }
-.buttons button {
-  background: #007bff;
+
+.btn {
+  padding: 0.5rem 1rem;
   border: none;
-  color: white;
-  padding: 10px 20px;
-  margin: 0 5px;
   border-radius: 5px;
   cursor: pointer;
+  font-size: 1rem;
 }
-.charts {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
+
+.btn.normal { background: #2e7d32; }
+.btn.ddos   { background: #c62828; }
+.btn.stop   { background: #616161; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
 }
+
+.card {
+  background: #1e1e1e;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.card.full {
+  grid-column: 1 / -1;
+}
+
 canvas {
-  background: #2a2a2a;
-  border-radius: 5px;
-  flex: 1;
+  width: 100% !important;
+  height: 200px !important;
 }
-#log {
-  margin-top: 20px;
-  height: 100px;
-  overflow-y: auto;
-  background: #222;
-  padding: 10px;
-  border-radius: 5px;
-  font-size: 0.9em;
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+th, td {
+  padding: 0.5rem;
+  border-bottom: 1px solid #333;
+  text-align: center;
+}
+
+th {
+  background: #2c2c2c;
 }

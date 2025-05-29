@@ -5,22 +5,52 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>DDoS Simulator Dashboard</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
-  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  <script src="{{ url_for('static', filename='main.js') }}" defer></script>
 </head>
 <body>
-  <div class="container">
-    <h1>DDoS Simulator</h1>
-    <div class="buttons">
-      <button id="normalBtn">Normal Traffic</button>
-      <button id="ddosBtn">DDoS Traffic</button>
+  <header class="header">
+    <h1>DDoS Simulator Dashboard</h1>
+  </header>
+
+  <section class="controls">
+    <button id="startNormal" class="btn normal">Start Normal</button>
+    <button id="stop"       class="btn stop">Stop</button>
+    <button id="startDdos"  class="btn ddos">Start DDoS</button>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <h2>Anomaly Score</h2>
+      <canvas id="anomalyChart"></canvas>
     </div>
-    <div class="charts">
-      <canvas id="trafficChart"></canvas>
+    <div class="card">
+      <h2>Classification Counts</h2>
       <canvas id="classChart"></canvas>
     </div>
-    <div id="log"></div>
-  </div>
-  <script src="{{ url_for('static', filename='main.js') }}"></script>
+    <div class="card">
+      <h2>Requests & Rate</h2>
+      <canvas id="rateChart"></canvas>
+    </div>
+    <div class="card full">
+      <h2>Recent Requests Detail</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Protocol</th>
+            <th>Src Bytes</th>
+            <th>Dst Bytes</th>
+            <th>Label</th>
+            <th>Anomaly</th>
+            <th>Tick Count</th>
+            <th>Req/sec</th>
+          </tr>
+        </thead>
+        <tbody id="detailsBody"></tbody>
+      </table>
+    </div>
+  </section>
 </body>
 </html>
