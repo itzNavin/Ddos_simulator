@@ -18,6 +18,8 @@
     <button id="startNormal" class="btn normal">Start Normal</button>
     <button id="stop"       class="btn stop">Stop</button>
     <button id="startDdos"  class="btn ddos">Start DDoS</button>
+    <button id="neutralize" class="btn neutralize">Neutralize DDoS</button>
+    <button id="toggleRL"   class="btn rl">Toggle Rate Limit</button>
   </section>
 
   <section class="grid">
@@ -34,11 +36,11 @@
       <canvas id="rateChart"></canvas>
     </div>
     <div class="card full">
-      <h2>Recent Requests Detail</h2>
+      <h2>Recent Requests</h2>
       <table>
         <thead>
           <tr>
-            <th>Time</th>
+            <th>Time (s)</th>
             <th>Protocol</th>
             <th>Src Bytes</th>
             <th>Dst Bytes</th>
@@ -46,6 +48,7 @@
             <th>Anomaly</th>
             <th>Tick Count</th>
             <th>Req/sec</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody id="detailsBody"></tbody>
